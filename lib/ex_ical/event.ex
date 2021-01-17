@@ -63,5 +63,7 @@ defmodule ExIcal.Event do
             summary: nil,
             rrule: nil,
             categories: nil,
-            uid: nil
+            uid: nil,
+            attendees: nil,
+            organizer: nil
 end

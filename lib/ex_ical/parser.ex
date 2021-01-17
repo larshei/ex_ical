@@ -34,8 +34,8 @@ defmodule ExIcal.Parser do
   @spec parse(String.t) :: [%Event{}]
   def parse(data) do
     data
+    |> String.replace(~s"\x20\x20", ~S"\x20")
     |> String.replace(~s"\n\x20", ~S"")
-    |> String.replace(~s"\x20", ~S"")
     |> String.replace(~s"\n\t", ~S"\n")
     |> String.replace(~s"\"", "")
     |> String.split("\n")
@@ -56,7 +56,9 @@ defmodule ExIcal.Parser do
   defp parse_line("UID:" <> uid, data),                 do: data |> put_to_map(:uid, uid)
   defp parse_line("RRULE:" <> rrule, data),             do: data |> put_to_map(:rrule, process_rrule(rrule, data[:tzid]))
   defp parse_line("TZID:" <> tzid, data),               do: data |> Map.put(:tzid, tzid)
-  defp parse_line("CATEGORIES:" <> categories, data),    do: data |> put_to_map(:categories, String.split(categories, ","))
+  defp parse_line("CATEGORIES:" <> categories, data),   do: data |> put_to_map(:categories, String.split(categories, ","))
+  defp parse_line("ATTENDEE;" <> attendee, data),       do: data |> put_to_map(:attendees, process_attendee(attendee, data[:events]))
+  defp parse_line("ORGANIZER;" <> organizer, data),     do: data |> put_to_map(:organizer, process_organizer(organizer))
   defp parse_line(_, data), do: data
 
   defp put_to_map(%{events: [event | events]} = data, key, value) do
@@ -92,5 +94,28 @@ defmodule ExIcal.Parser do
     string
     |> String.replace(~S",", ~s",")
     |> String.replace(~S"\n", ~s"\n")
+  end
+
+  defp process_attendee(attendee, [event | events] = data) when is_binary(attendee) do
+    attendee = attendee
+    |> String.replace("MAILTO:", "mailto:")
+    |> String.split("mailto:")
+    |> tl()
+
+    attendees = case event.attendees do
+      nil -> attendee
+      attendees -> [attendee | event.attendees] |> List.flatten()
+    end
+
+    attendees
+  end
+
+  defp process_organizer(organizer) when is_binary(organizer) do
+    [organizer] = organizer
+    |> String.replace("MAILTO:", "mailto:")
+    |> String.split("mailto:")
+    |> tl()
+
+    organizer
   end
 end
