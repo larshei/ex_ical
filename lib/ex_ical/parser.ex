@@ -34,13 +34,14 @@ defmodule ExIcal.Parser do
   @spec parse(String.t) :: [%Event{}]
   def parse(data) do
     data
+    |> String.replace(~s"\n\x20", ~S"")
+    |> String.replace(~s"\x20", ~S"")
     |> String.replace(~s"\n\t", ~S"\n")
-    |> String.replace(~s"\n\x20", ~S"\n")
     |> String.replace(~s"\"", "")
     |> String.split("\n")
     |> Enum.reduce(%{events: []}, fn(line, data) ->
       line
-      |> String.trim() 
+      |> String.trim()
       |> parse_line(data)
     end)
     |> Map.get(:events)
